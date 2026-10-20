@@ -4,8 +4,6 @@ Provider priority:
 1. Google Places API (New) — when GOOGLE_MAPS_API_KEY is set. Autocomplete + Place Details
    share a session token; the monthly free tier covers typical KYC volumes.
 2. OpenStreetMap / Photon — free, no key needed, used when Google is not configured.
-3. Bing Maps AutoSuggest — used when USE_BING_AUTOCOMPLETE=true (overrides OSM as the
-   fallback). Queries are proxied server-side so credentials never reach the browser.
 
 All providers return the same shape, already mapped onto Yativo's address fields; the state
 is matched to a Yativo subdivision code where possible, otherwise the customer picks it.
@@ -25,28 +23,9 @@ log = logging.getLogger("kyc.address")
 GOOGLE_AUTOCOMPLETE = "https://places.googleapis.com/v1/places:autocomplete"
 GOOGLE_DETAILS = "https://places.googleapis.com/v1/places/{place_id}"
 
-# Bing Maps AutoSuggest – structured-address mode, postal addresses only.
-# Parameters are read from config so the operator can rotate/override them via env vars.
-# We request both ptypes but only parse PostalAddress entries; History entries carry a
-# full-sentence streetAddress that is not suitable for field-level autofill.
-_BING_PTYPES = "favorite,history"
-_BING_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0.0.0 Safari/537.36"
-    ),
-    "Accept": "application/json, text/plain, */*",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Referer": "https://www.bing.com/",
-}
-
-
 def provider() -> str:
     if settings.google_maps_api_key:
         return "google"
-    if settings.use_bing_autocomplete:
-        return "bing"
     return "osm"
 
 
@@ -58,15 +37,13 @@ def autocomplete(query: str, country: str, session_token: str) -> list[dict[str,
     p = provider()
     if p == "google":
         return _google_autocomplete(query, country, session_token)
-    if p == "bing":
-        return _bing_autocomplete(query, country)
     return _osm_autocomplete(query, country)
 
 
 def details(place_id: str, country: str, session_token: str) -> dict[str, Any] | None:
     if provider() == "google":
         return _google_details(place_id, country, session_token)
-    return None  # OSM and Bing suggestions already carry the full address inline
+    return None  # OSM suggestions already carry the full address inline
 
 
 # ------------------------------------------------------------------------------ Google
@@ -111,6 +88,9 @@ def _google_details(place_id: str, country: str, token: str) -> dict[str, Any] |
     cc = g("country", True).upper() or country
     number, route = g("street_number"), g("route")
     # House number goes first in most countries; Google keeps the order neutral.
+    route_first = cc in {"DE", "AT", "CH", "NL", "BE", "ES", "IT", "PT", "AR", "CL", "CO", "BR", "MX"}
+    parts = (route, number) if route_first else (number, route)
+    line1 = " ".join(x for x in parts if x)
     line1 = line1 or g("premise") or g("establishment") or g("point_of_interest") or g("neighborhood")
     line2 = ", ".join(x for x in (g("subpremise"), g("premise") if line1 != g("premise") else "",
                                   g("sublocality_level_1") or g("sublocality") or g("neighborhood")) if x)
@@ -126,60 +106,6 @@ def _google_details(place_id: str, country: str, token: str) -> dict[str, Any] |
         "postal_code": g("postal_code"),
         "country": cc,
     }
-
-
-# ------------------------------------------------------------------------------ Bing Maps AutoSuggest
-def _bing_autocomplete(query: str, country: str) -> list[dict[str, Any]]:
-    """Call the Bing Maps AutoSuggest API and return up to 6 structured address results.
-
-    The API returns a mix of _type values ("PostalAddress", "History", etc.).  We only
-    surface entries that have a streetAddress so the suggestions are always actionable.
-    """
-    params: dict[str, Any] = {
-        "q": query,
-        "appid": settings.bing_autosuggest_appid,
-    r = httpx.get(
-        settings.bing_autosuggest_url,
-        params=params,
-        timeout=8,
-        headers={"Accept-Language": "en-US,en;q=0.9"},
-    )
-    r.raise_for_status()
-
-    out: list[dict[str, Any]] = []
-    for item in r.json().get("value", []):
-            item.get("postalCode")
-            or addr_block.get("postalCode")
-            or ""
-        )
-        cc = (
-            item.get("countryIso")
-            or addr_block.get("countryIso")
-            or ""
-        ).upper()
-
-        # Honour the country filter when one is provided
-        secondary_parts = [x for x in (city, region_abbr, postal) if x]
-        main_text = street
-        secondary_text = ", ".join(secondary_parts)
-
-            "id": f"bing:{item.get('id', '')}",
-            "main": main_text,
-            "secondary": secondary_text,
-            "address": {
-                "street_line_1": street,
-                "street_line_2": "",
-                "city": city,
-                "state": L.match_subdivision(cc, region_abbr, region_full, city) if cc else None,
-                "state_text": region_full or region_abbr,
-                "postal_code": postal,
-                "country": cc,
-            },
-        })
-        if len(out) >= 6:
-            break
-
-    return out
 
 
 # ------------------------------------------------------------------------------ OpenStreetMap

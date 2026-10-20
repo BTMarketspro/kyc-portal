@@ -49,20 +49,10 @@ class Settings:
     lookup_cache_ttl: int = _int("LOOKUP_CACHE_TTL_SECONDS", 6 * 3600)
 
     # Address autocomplete. With a key, Google Places (New) is used through a server-side
-    # proxy (the key never reaches the browser). Without Google, Bing Maps AutoSuggest is
-    # used by default (USE_BING_AUTOCOMPLETE defaults to true). Set USE_BING_AUTOCOMPLETE=false
-    # to fall back to the free OpenStreetMap/Photon geocoder instead.
+    # proxy (the key never reaches the browser). Without one, the free OpenStreetMap/Photon
+    # geocoder is used.
     google_maps_api_key: str = os.getenv("GOOGLE_MAPS_API_KEY", "")
     osm_autocomplete_url: str = os.getenv("OSM_AUTOCOMPLETE_URL", "https://photon.komoot.io/api/")
-    bing_autosuggest_url: str = os.getenv(
-        "BING_AUTOSUGGEST_URL",
-        "https://www.bing.com/api/v7/Places/AutoSuggest",
-    )
-    bing_autosuggest_appid: str = os.getenv("BING_AUTOSUGGEST_APPID", "D41D8CD98F00B204E9800998ECF8427E1FBE79C2")
-    bing_autosuggest_cid: str = os.getenv("BING_AUTOSUGGEST_CID", "90f31485-716c-74b6-dd45-057479b681d7")
-    bing_autosuggest_ig: str = os.getenv("BING_AUTOSUGGEST_IG", "7D189746568143508CC392C40D5444D0")
-    bing_autosuggest_clientid: str = os.getenv("BING_AUTOSUGGEST_CLIENTID", "3ED8B5C6594C6C602D29A22658C96DE4")
-    use_bing_autocomplete: bool = _bool("USE_BING_AUTOCOMPLETE", True)
 
     # File handling. Every stored file is normalised into [min, max].
     file_min_bytes: int = _int("FILE_MIN_KB", 120) * 1024
