@@ -1,0 +1,251 @@
+{% import "_fields.html" as f %}
+{% set e = boot.enums %}
+
+<section class="step" data-step="company" data-title="Company details" data-sub="Legal entity information" data-icon="i-building">
+  <header class="step-head"><h1>Company details</h1><p>Use the details exactly as they appear on your registration documents.</p></header>
+  <div class="grid">
+    {{ f.input("business_legal_name", "Legal business name", required=true, attrs='maxlength="255" data-name', wide=true) }}
+    {{ f.input("business_trade_name", "Trading name", required=true, hint="The name customers know you by. Use the legal name if you don't have one.", attrs='maxlength="255" data-name') }}
+    {{ f.select("business_type", "Business type", e.business_types.items(), true) }}
+    {{ f.input("registration_number", "Registration number", required=true, attrs='maxlength="100"') }}
+    {{ f.date("incorporation_date", "Incorporation date", true, "", "past") }}
+    {{ f.country("incorporation_country", "Country of incorporation", true) }}
+    {{ f.input("tax_id", "Company tax ID", required=true, hint="EIN, TIN, VAT, CNPJ, NIT, RC/TIN… the company's tax number.", attrs='maxlength="100"') }}
+    {{ f.input("email", "Business email", "email", true, "compliance@company.com", "", 'data-email maxlength="254"') }}
+    {{ f.phone("phone_calling_code", "phone_number", "Business phone", true, "", "incorporation_country") }}
+    {{ f.input("primary_website", "Website", "url", false, "https://", "", 'maxlength="255"') }}
+    {{ f.typeahead("business_industry", "Industry", "industries", true, "Search industries, e.g. software publishers") }}
+    {{ f.textarea("business_description", "What does the business do?", true,
+       "Describe your products or services, your customers and where you operate.",
+       "Minimum 140 characters. Be specific: what you sell, to whom, and how money flows.", 140, 1000, 5) }}
+    {{ f.input("statement_descriptor", "Statement descriptor", hint="Name shown on bank statements (max 22 characters).", attrs='maxlength="22"') }}
+  </div>
+  {{ f.toggle("is_dao", "The business is a DAO (decentralised autonomous organisation)") }}
+</section>
+
+<section class="step" data-step="addresses" data-title="Addresses" data-sub="Registered & operating" data-icon="i-pin">
+  <header class="step-head"><h1>Business addresses</h1><p>Your registered office and where the business actually operates.</p></header>
+  {{ f.address("registered_address", "Registered address", None, max_line=255, max_city=100) }}
+  <div class="divider"></div>
+  <h3 class="sub-title">Operating address</h3>
+  {{ f.toggle("_same_address", "Same as registered address") }}
+  <div class="cond" data-show-if="_same_address!=true">
+    {{ f.address("physical_address", "", None, max_line=255, max_city=100) }}
+  </div>
+  {{ f.uploader("physical_address.proof_of_address_file", "Proof of business address", true,
+     "Statement of account or utility bill from the last 3 months showing the business name and operating address.") }}
+</section>
+
+<section class="step" data-step="people" data-title="Owners & directors" data-sub="People behind the business" data-icon="i-users">
+  <header class="step-head"><h1>Owners, directors &amp; signers</h1>
+    <p>Add every person who owns 25% or more, every director, and anyone authorised to act for the business.</p></header>
+  <div class="own-total" id="own-total" hidden></div>
+  <p class="field-error" data-error-for="associated_persons" role="alert"></p>
+  <div class="repeater persons" data-repeater="associated_persons" data-min="1" data-max="10">
+    <div class="items"></div>
+    <template>
+      <div class="item person card-inset" data-item>
+        <div class="person-head">
+          <span class="avatar" aria-hidden="true"><svg class="ico"><use href="#i-user"/></svg></span>
+          <strong class="person-title" data-person-title>Person</strong>
+          <button type="button" class="icon-btn remove" data-remove aria-label="Remove person"><svg class="ico"><use href="#i-trash"/></svg></button>
+        </div>
+
+        <div class="roles" data-error-for="associated_persons.__i__.roles">
+          <span class="label">Role(s) <span class="req">*</span></span>
+          <div class="checkgrid">
+            <label class="pill"><input type="checkbox" name="associated_persons.__i__.has_ownership" data-type="bool"><span>Owner / shareholder</span></label>
+            <label class="pill"><input type="checkbox" name="associated_persons.__i__.is_director" data-type="bool"><span>Director</span></label>
+            <label class="pill"><input type="checkbox" name="associated_persons.__i__.has_control" data-type="bool"><span>Controls the business</span></label>
+            <label class="pill"><input type="checkbox" name="associated_persons.__i__.is_signer" data-type="bool"><span>Authorised signer</span></label>
+          </div>
+          <p class="field-error" role="alert"></p>
+        </div>
+
+        <div class="grid">
+          {{ f.input("associated_persons.__i__.first_name", "First name", required=true, attrs='maxlength="100" data-name data-person-name') }}
+          {{ f.input("associated_persons.__i__.last_name", "Last name", required=true, attrs='maxlength="100" data-name data-person-name') }}
+          {{ f.date("associated_persons.__i__.birth_date", "Date of birth", true, "", "birth") }}
+          {{ f.country("associated_persons.__i__.nationality", "Nationality", true) }}
+          {{ f.input("associated_persons.__i__.email", "Email address", "email", true, "", "", 'data-email maxlength="254"') }}
+          {{ f.phone("associated_persons.__i__.phone_calling_code", "associated_persons.__i__.phone", "Phone", false, "", "@nationality") }}
+          {{ f.input("associated_persons.__i__.title", "Job title", hint="e.g. CEO, Director, CFO", attrs='maxlength="255"') }}
+          <div class="cond" data-show-if="@has_ownership=true">
+            {{ f.input("associated_persons.__i__.ownership_percentage", "Ownership %", "number", true, "e.g. 25", "", 'min="0" max="100" step="0.01" data-ownership') }}
+          </div>
+          {{ f.date("associated_persons.__i__.relationship_established_at", "With the business since", false, "", "notfuture") }}
+          {{ f.input("associated_persons.__i__.annual_salary", "Annual income (USD)", attrs='inputmode="numeric" maxlength="20" data-digits-only') }}
+        </div>
+
+        {{ f.address("associated_persons.__i__.residential_address", "Residential address", None, max_line=255, max_city=100, scoped=true) }}
+
+        <h3 class="sub-title">Photo ID</h3>
+        <div class="grid">
+          {{ f.country("associated_persons.__i__.identifying_information.0.issuing_country", "Issuing country", true, "", 'data-follow="@nationality"') }}
+          {{ f.select("associated_persons.__i__.identifying_information.0.type", "Document type", None, true, "Select document", "", 'data-idtypes="@identifying_information.0.issuing_country"') }}
+          {{ f.input("associated_persons.__i__.identifying_information.0.number", "Document number", required=true, attrs='maxlength="100"') }}
+          {{ f.date("associated_persons.__i__.identifying_information.0.date_issued", "Issue date", false, "", "past") }}
+          {{ f.date("associated_persons.__i__.identifying_information.0.expiration", "Expiry date", true, "", "future") }}
+        </div>
+        <p class="field-error" data-error-for="associated_persons.__i__.identifying_information" role="alert"></p>
+        <div class="upload-pair">
+          {{ f.uploader("associated_persons.__i__.identifying_information.0.image_front", "Front side", true, "", "id") }}
+          <div class="cond" data-show-if="@identifying_information.0.type!=passport">
+            {{ f.uploader("associated_persons.__i__.identifying_information.0.image_back", "Back side", true, "", "id") }}
+          </div>
+        </div>
+
+        <h3 class="sub-title">Personal tax ID</h3>
+        <input type="hidden" name="associated_persons.__i__.identifying_information.1.type" value="tax_id">
+        <div class="grid">
+          {{ f.input("associated_persons.__i__.identifying_information.1.number", "Personal tax number", hint="e.g. SSN, NIN, TIN, CPF. Recommended — it speeds up approval.", attrs='maxlength="100"') }}
+          {{ f.country("associated_persons.__i__.identifying_information.1.issuing_country", "Tax country", false, "", 'data-follow="@nationality"') }}
+        </div>
+
+        <div class="cond" data-show-if="@nationality=NG">
+          <input type="hidden" name="associated_persons.__i__.identifying_information.2.type" value="bvn">
+          <div class="grid">
+            {{ f.input("associated_persons.__i__.identifying_information.2.number", "BVN", hint="11 digits. Lets the business receive a Naira account in its own name.", attrs='inputmode="numeric" maxlength="11" data-digits="11"') }}
+          </div>
+        </div>
+      </div>
+    </template>
+    <button type="button" class="btn-dashed" data-add><svg class="ico sm"><use href="#i-plus"/></svg> Add another person</button>
+  </div>
+</section>
+
+<section class="step" data-step="activity" data-title="Activity & compliance" data-sub="Purpose, funds and risk" data-icon="i-chart">
+  <header class="step-head"><h1>Business activity &amp; compliance</h1><p>How the business will use its account, and a few regulatory questions.</p></header>
+  <div class="grid">
+    {{ f.select("account_purpose", "Account purpose", e.account_purposes.items(), true) }}
+    {{ f.select("source_of_funds", "Source of funds", e.source_of_funds.items(), true) }}
+    <div class="cond wide" data-show-if="account_purpose=other">
+      {{ f.input("account_purpose_other", "Describe the account purpose", required=true, wide=true, attrs='maxlength="1000"') }}
+    </div>
+    {{ f.input("expected_monthly_payments_usd", "Expected monthly payments (USD)", "number", true, "e.g. 50000", "Total value in US dollars, whole number.", 'min="0" step="1" inputmode="numeric"') }}
+    {{ f.input("estimated_annual_revenue_usd", "Estimated annual revenue (USD)", hint="Whole number, digits only.", attrs='inputmode="numeric" maxlength="15" data-digits-only') }}
+  </div>
+  {{ f.checkgrid("high_risk_activities", "Does the business engage in any of these activities? *", e.high_risk_activities.items(), "Select all that apply.", "none_of_the_above") }}
+  <div class="cond" data-show-if="high_risk_activities~none_of_the_above">
+    {{ f.textarea("high_risk_activities_explanation", "Explain these activities", true, "Licences held, controls in place, share of revenue…", "", 0, 5000, 3) }}
+  </div>
+  {{ f.yesno("conducts_money_services", "Does the business provide money services (e.g. remittance, exchange, payments)?") }}
+  <div class="cond" data-show-if="conducts_money_services=true">
+    {{ f.textarea("conducts_money_services_description", "Describe the money services", true, "", "", 0, 5000, 3) }}
+    {{ f.textarea("compliance_screening_explanation", "Describe your compliance screening (KYC/AML, sanctions)", true, "", "", 0, 5000, 3) }}
+  </div>
+  {{ f.yesno("pep_status", "Is any owner, director or signer a politically exposed person (PEP)?") }}
+  {{ f.yesno("third_party_msb_payments", "Will you send or receive payments on behalf of third parties?") }}
+  <div class="grid">
+    {{ f.select("operates_in_prohibited_countries", "Do you operate in sanctioned or prohibited countries?", [("no", "No"), ("yes", "Yes")], true) }}
+    {{ f.input("ownership_threshold", "Ownership disclosure threshold (%)", "number", false, "25", "Ownership level above which owners are disclosed (5–100).", 'min="5" max="100" step="1"') }}
+  </div>
+  {{ f.toggle("has_material_intermediary_ownership", "The business is owned through intermediary companies (holding structures)") }}
+  {{ f.toggle("_regulated", "The business is licensed or regulated by a financial authority") }}
+  <div class="cond" data-show-if="_regulated=true">
+    <div class="grid">
+      {{ f.input("primary_regulatory_authority_name", "Regulator name", attrs='maxlength="255"') }}
+      {{ f.country("primary_regulatory_authority_country", "Regulator country", false) }}
+      {{ f.input("license_number", "Licence number", attrs='maxlength="255"') }}
+      {{ f.textarea("regulated_activities_description", "Regulated activities", false, "", "", 0, 5000, 3) }}
+    </div>
+  </div>
+</section>
+
+<section class="step" data-step="operations" data-title="Operations profile" data-sub="Volumes, collections, payouts" data-icon="i-globe">
+  <header class="step-head"><h1>Operations profile</h1><p>Optional, but a complete profile speeds up approval of every payment service.</p></header>
+  <details class="fold" open>
+    <summary>Business profile</summary>
+    <div class="grid">
+      {{ f.input("extra_business_info.monthly_volume_usd", "Monthly volume (USD)", "number", false, "", "", 'min="0"') }}
+      {{ f.input("extra_business_info.avg_transaction_usd", "Average transaction (USD)", "number", false, "", "", 'min="0"') }}
+      {{ f.input("extra_business_info.max_transaction_usd", "Largest transaction (USD)", "number", false, "", "", 'min="0"') }}
+      {{ f.input("extra_business_info.primary_account_purpose", "Main use of the account", hint="e.g. supplier payments", attrs='maxlength="255"') }}
+      {{ f.select("extra_business_info.meeting_mode", "Preferred contact method", e.meeting_modes.items(), false) }}
+      {{ f.select("extra_business_info.obo_usage", "Will you transact on behalf of others?", [("no", "No"), ("yes", "Yes")], false) }}
+    </div>
+    {{ f.checkgrid("extra_business_info.sender_geographies", "Where do your payments come from?", e.sender_geographies|pairs) }}
+  </details>
+  <details class="fold">
+    <summary>Collections (money coming in)</summary>
+    {{ f.checkgrid("collections_data.sender_industries", "Payer industries", e.sender_industries|pairs) }}
+    <div class="grid">
+      {{ f.select("collections_data.sender_types", "Payers are mostly", e.sender_types.items(), false) }}
+      {{ f.input("collections_data.expected_monthly_disbursement_usd", "Expected monthly collections (USD)", "number", false, "", "", 'min="0"') }}
+      {{ f.input("collections_data.avg_transaction_amount_collection", "Average payment received (USD)", "number", false, "", "", 'min="0"') }}
+      {{ f.input("collections_data.max_transaction_amount_collection", "Largest payment received (USD)", "number", false, "", "", 'min="0"') }}
+      {{ f.input("collections_data.current_collection_provider", "Current provider", attrs='maxlength="255"') }}
+      {{ f.input("collections_data.reason_for_switching_collection", "Reason for switching", attrs='maxlength="1000"') }}
+    </div>
+    {{ f.chips("collections_data.collection_currencies", "Currencies you collect", "currencies") }}
+    {{ f.textarea("collections_data.top_5_senders", "Top payers (one per line, max 5)", false, "", "", 0, 0, 3) }}
+    {{ f.toggle("collections_data.incoming_from_fintech_wallets", "We receive funds from fintech wallets") }}
+    <div class="cond" data-show-if="collections_data.incoming_from_fintech_wallets=true">
+      {{ f.input("collections_data.incoming_fintech_wallet_details", "Which wallets?", wide=true, attrs='maxlength="1000"') }}
+    </div>
+  </details>
+  <details class="fold">
+    <summary>Payouts (money going out)</summary>
+    <div class="grid">
+      {{ f.input("payouts_data.payout_primary_purpose", "Main payout purpose", attrs='maxlength="255"') }}
+      {{ f.select("payouts_data.beneficiary_types", "Recipients are mostly", e.beneficiary_types.items(), false) }}
+      {{ f.select("payouts_data.primary_payout_method", "Main payout method", e.payout_methods.items(), false) }}
+      {{ f.input("payouts_data.current_payout_provider", "Current provider", attrs='maxlength="255"') }}
+      {{ f.input("payouts_data.reason_for_switching_payout", "Reason for switching", wide=true, attrs='maxlength="1000"') }}
+    </div>
+    {{ f.chips("payouts_data.beneficiary_geographies", "Recipient countries", "transaction_countries") }}
+    {{ f.chips("payouts_data.payout_currencies", "Payout currencies", "currencies") }}
+    {{ f.textarea("payouts_data.beneficiary_industries", "Recipient industries (one per line)", false, "", "", 0, 0, 2) }}
+    {{ f.textarea("payouts_data.top_5_beneficiaries", "Top recipients (one per line, max 5)", false, "", "", 0, 0, 3) }}
+  </details>
+</section>
+
+<section class="step" data-step="documents" data-title="Company documents" data-sub="Registration and more" data-icon="i-doc">
+  <header class="step-head"><h1>Company documents</h1><p>Clear scans or PDFs. Any file size works — we optimise uploads automatically.</p></header>
+  <p class="field-error" data-error-for="documents" role="alert"></p>
+  <input type="hidden" name="documents.0.purpose" value="business_registration">
+  <input type="hidden" name="documents.0.description" value="Certificate of incorporation / business registration">
+  {{ f.uploader("documents.0.file", "Certificate of incorporation / business registration", true, "Official registration certificate issued by the company registry.") }}
+  <input type="hidden" name="documents.1.purpose" value="tax_documents">
+  <input type="hidden" name="documents.1.description" value="Company tax registration document">
+  {{ f.uploader("documents.1.file", "Tax registration document", false, "Recommended: the official document showing the company tax ID.") }}
+  <input type="hidden" name="documents.2.purpose" value="certificate_of_good_standing">
+  <input type="hidden" name="documents.2.description" value="Certificate of good standing">
+  {{ f.uploader("documents.2.file", "Certificate of good standing", false) }}
+
+  <h3 class="sub-title">More documents <span class="opt">Optional</span></h3>
+  <div class="repeater" data-repeater="documents" data-start="3" data-max="10">
+    <div class="items"></div>
+    <template>
+      <div class="item card-inset" data-item>
+        <input type="hidden" name="documents.__i__._user" value="1">
+        <button type="button" class="icon-btn remove" data-remove aria-label="Remove document"><svg class="ico"><use href="#i-trash"/></svg></button>
+        <div class="grid">
+          {{ f.select("documents.__i__.purpose", "Document type", e.document_purposes.items(), true) }}
+          {{ f.input("documents.__i__.description", "Description", required=true, attrs='maxlength="255"') }}
+        </div>
+        {{ f.uploader("documents.__i__.file", "File", true) }}
+      </div>
+    </template>
+    <button type="button" class="btn-dashed" data-add><svg class="ico sm"><use href="#i-plus"/></svg> Add a document</button>
+  </div>
+  <div class="repeater" data-repeater="extra_documents" data-max="10">
+    <div class="items"></div>
+    <template>
+      <div class="item card-inset" data-item>
+        <button type="button" class="icon-btn remove" data-remove aria-label="Remove document"><svg class="ico"><use href="#i-trash"/></svg></button>
+        <div class="grid">
+          {{ f.select("extra_documents.__i__.type", "Document type", e.extra_document_types.items(), true) }}
+          {{ f.input("extra_documents.__i__.description", "Description", attrs='maxlength="255"') }}
+        </div>
+        {{ f.uploader("extra_documents.__i__.file", "File", true) }}
+      </div>
+    </template>
+    <button type="button" class="btn-dashed" data-add><svg class="ico sm"><use href="#i-plus"/></svg> Add articles of association, shareholder chart…</button>
+  </div>
+</section>
+
+<section class="step" data-step="extras" data-title="Accounts" data-sub="Choose your accounts" data-icon="i-wallet">
+  <header class="step-head"><h1>Accounts</h1><p>Choose the accounts you'd like to open for the business.</p></header>
+  {% include "_accounts.html" %}
+</section>

@@ -1,0 +1,186 @@
+{# Form building blocks. Field names are Yativo field paths (dot notation, "__i__" = repeater index). #}
+
+{% macro req(required) %}{% if required %}<span class="req" aria-hidden="true">*</span>{% else %}<span class="opt">Optional</span>{% endif %}{% endmacro %}
+
+{% macro input(name, label, type="text", required=false, placeholder="", hint="", attrs="", wide=false, autocomplete="off") %}
+<div class="field{% if wide %} wide{% endif %}" data-field="{{ name }}">
+  <label class="label" for="f-{{ name }}">{{ label }} {{ req(required) }}</label>
+  <input class="input" id="f-{{ name }}" name="{{ name }}" type="{{ type }}" placeholder="{{ placeholder }}"
+         autocomplete="{{ autocomplete }}" {% if required %}required{% endif %} {{ attrs|safe }}>
+  {% if hint %}<p class="hint">{{ hint }}</p>{% endif %}
+  <p class="field-error" role="alert"></p>
+</div>
+{% endmacro %}
+
+{% macro textarea(name, label, required=false, placeholder="", hint="", minlen=0, maxlen=0, rows=4) %}
+<div class="field wide" data-field="{{ name }}">
+  <label class="label" for="f-{{ name }}">{{ label }} {{ req(required) }}</label>
+  <textarea class="input" id="f-{{ name }}" name="{{ name }}" rows="{{ rows }}" placeholder="{{ placeholder }}"
+            {% if required %}required{% endif %} {% if maxlen %}maxlength="{{ maxlen }}"{% endif %}
+            {% if minlen %}data-minlen="{{ minlen }}"{% endif %}></textarea>
+  <div class="hint-row">{% if hint %}<p class="hint">{{ hint }}</p>{% endif %}{% if minlen or maxlen %}<span class="counter" data-counter-for="{{ name }}"></span>{% endif %}</div>
+  <p class="field-error" role="alert"></p>
+</div>
+{% endmacro %}
+
+{% macro select(name, label, options=None, required=false, placeholder="Select…", hint="", attrs="", wide=false) %}
+<div class="field{% if wide %} wide{% endif %}" data-field="{{ name }}">
+  <label class="label" for="f-{{ name }}">{{ label }} {{ req(required) }}</label>
+  <div class="select-wrap">
+    <select class="input" id="f-{{ name }}" name="{{ name }}" {% if required %}required{% endif %} {{ attrs|safe }}>
+      <option value="">{{ placeholder }}</option>
+      {% if options %}{% for value, text in options %}<option value="{{ value }}">{{ text }}</option>{% endfor %}{% endif %}
+    </select>
+  </div>
+  {% if hint %}<p class="hint">{{ hint }}</p>{% endif %}
+  <p class="field-error" role="alert"></p>
+</div>
+{% endmacro %}
+
+{% macro country(name, label, required=true, hint="", attrs="", source="countries", wide=false) %}
+{{ select(name, label, None, required, "Select country", hint, 'data-source="' ~ source ~ '" ' ~ attrs, wide) }}
+{% endmacro %}
+
+{% macro date(name, label, required=true, hint="", mode="") %}
+{{ input(name, label, "date", required, "", hint, 'data-date="' ~ mode ~ '"') }}
+{% endmacro %}
+
+{% macro phone(cc_name, num_name, label, required=true, hint="", follow="") %}
+<div class="field" data-field="{{ num_name }}">
+  <label class="label" for="f-{{ num_name }}">{{ label }} {{ req(required) }}</label>
+  <div class="phone">
+    <div class="select-wrap cc" data-field="{{ cc_name }}">
+      <select class="input" name="{{ cc_name }}" data-source="calling_codes" {% if follow %}data-follow-country="{{ follow }}"{% endif %} {% if required %}required{% endif %} aria-label="Country code">
+        <option value="">Code</option>
+      </select>
+    </div>
+    <input     class="input"     id="f-{{ num_name }}"     name="{{ num_name }}"     type="text"     minlength="6"     maxlength="12"     inputmode="numeric"     pattern="[0-9]{6,12}"     autocomplete="off"     placeholder="Phone number"     onkeydown="if (!/^[0-9]$/.test(event.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Home','End'].includes(event.key) && !(event.ctrlKey || event.metaKey)) event.preventDefault()"     oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 12)"     {% if required %}required{% endif %} >
+  </div>
+  <p class="hint">{{ hint or "Without the country code or leading zero." }}</p>
+  <p class="field-error" role="alert"></p>
+  <p class="field-error" data-error-for="{{ cc_name }}" role="alert"></p>
+</div>
+{% endmacro %}
+
+{% macro yesno(name, label, required=true, hint="", wide=true) %}
+<div class="field{% if wide %} wide{% endif %}" data-field="{{ name }}" data-error-for="{{ name }}">
+  <span class="label">{{ label }} {{ req(required) }}</span>
+  <div class="segmented" role="radiogroup" aria-label="{{ label }}">
+    <label><input type="radio" name="{{ name }}" value="true" data-type="bool"><span>Yes</span></label>
+    <label><input type="radio" name="{{ name }}" value="false" data-type="bool"><span>No</span></label>
+  </div>
+  {% if hint %}<p class="hint">{{ hint }}</p>{% endif %}
+  <p class="field-error" role="alert"></p>
+</div>
+{% endmacro %}
+
+{% macro toggle(name, label, hint="") %}
+<label class="check" data-field="{{ name }}">
+  <input type="checkbox" name="{{ name }}" data-type="bool">
+  <span class="box" aria-hidden="true"></span>
+  <span><strong>{{ label }}</strong>{% if hint %}<small>{{ hint }}</small>{% endif %}</span>
+</label>
+{% endmacro %}
+
+{% macro typeahead(name, label, source, required=true, placeholder="Start typing to search", hint="") %}
+<div class="field wide" data-field="{{ name }}">
+  <label class="label" for="f-{{ name }}-q">{{ label }} {{ req(required) }}</label>
+  <div class="typeahead" data-typeahead="{{ source }}">
+    <svg class="ico lead" aria-hidden="true"><use href="#i-search"/></svg>
+    <input class="input" minlength="4" maxlength="18" id="f-{{ name }}-q" type="text" placeholder="{{ placeholder }}" autocomplete="off" role="combobox" aria-expanded="false">
+    <input type="hidden" name="{{ name }}" {% if required %}data-required="1"{% endif %}>
+    <ul class="menu" role="listbox"></ul>
+  </div>
+  {% if hint %}<p class="hint">{{ hint }}</p>{% endif %}
+  <p class="field-error" role="alert"></p>
+</div>
+{% endmacro %}
+
+{% macro chips(name, label, source, hint="", placeholder="Search and add") %}
+<div class="field wide" data-field="{{ name }}">
+  <span class="label">{{ label }} {{ req(false) }}</span>
+  <div class="chips" data-chips="{{ source }}">
+    <div class="chip-list"></div>
+    <input class="input" type="text" placeholder="{{ placeholder }}" autocomplete="off">
+    <input type="hidden" name="{{ name }}" data-type="json" value="[]">
+    <ul class="menu" role="listbox"></ul>
+  </div>
+  {% if hint %}<p class="hint">{{ hint }}</p>{% endif %}
+  <p class="field-error" role="alert"></p>
+</div>
+{% endmacro %}
+
+{% macro checkgrid(name, label, options, hint="", exclusive="") %}
+<div class="field wide" data-field="{{ name }}" data-error-for="{{ name }}">
+  <span class="label">{{ label }}</span>
+  <div class="checkgrid" {% if exclusive %}data-exclusive="{{ exclusive }}"{% endif %}>
+    {% for value, text in options %}
+    <label class="pill"><input type="checkbox" name="{{ name }}" value="{{ value }}" data-type="array"><span>{{ text }}</span></label>
+    {% endfor %}
+  </div>
+  {% if hint %}<p class="hint">{{ hint }}</p>{% endif %}
+  <p class="field-error" role="alert"></p>
+</div>
+{% endmacro %}
+
+{% macro uploader(name, label, required=true, hint="", kind="doc", capture="") %}
+<div class="field wide" data-field="{{ name }}">
+  <span class="label">{{ label }} {{ req(required) }}</span>
+  <div class="uploader kind-{{ kind }}" data-uploader>
+    <input type="hidden" name="{{ name }}" {% if required %}data-required="1"{% endif %}>
+    <input type="file" class="sr-only" accept="image/*,.heic,.heif,.pdf,application/pdf" {% if capture %}capture="{{ capture }}"{% endif %} tabindex="-1">
+    <button type="button" class="drop">
+      <span class="drop-art" aria-hidden="true">
+        {% if kind == "selfie" %}<svg class="ico xl"><use href="#i-face"/></svg>
+        {% elif kind == "id" %}<svg class="ico xl"><use href="#i-idcard"/></svg>
+        {% else %}<svg class="ico xl"><use href="#i-doc"/></svg>{% endif %}
+      </span>
+      <span class="drop-text">
+        <strong>{% if kind == "selfie" %}Take a selfie or upload a photo{% else %}Drag & drop or <u>choose a file</u>{% endif %}</strong>
+        <small>{{ hint or "JPG, PNG, HEIC or PDF — any size, we optimise it for you." }}</small>
+      </span>
+    </button>
+    <div class="preview" hidden>
+      <div class="thumb"></div>
+      <div class="meta"><strong class="fname"></strong><small class="fstate"></small>
+        <div class="bar"><span></span></div>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn-ghost sm" data-act="replace">Replace</button>
+        <button type="button" class="icon-btn" data-act="remove" aria-label="Remove file"><svg class="ico"><use href="#i-trash"/></svg></button>
+      </div>
+    </div>
+  </div>
+  <p class="field-error" role="alert"></p>
+</div>
+{% endmacro %}
+
+{% macro address(prefix, title="", proof=None, proof_label="Proof of address", max_line=256, max_city=256, scoped=false, street_label="Street address") %}
+{# scoped=true: field references inside a repeater item use "@" (relative to the item). #}
+{% set ref = ("@" ~ prefix.split(".")[2:]|join(".")) if scoped else prefix %}
+<div class="address" data-address="{{ prefix }}">
+  {% if title %}<h3 class="sub-title">{{ title }}</h3>{% endif %}
+  <div class="grid">
+    {{ country(prefix ~ ".country", "Country", true, "", 'data-address-country') }}
+    <div class="field wide addr-search" data-addr-search>
+      <label class="label">Search address</label>
+      <div class="typeahead">
+        <svg class="ico lead" aria-hidden="true"><use href="#i-pin"/></svg>
+        <input class="input" type="text" placeholder="Start typing your street address" autocomplete="off" disabled>
+        <ul class="menu" role="listbox"></ul>
+      </div>
+      <p class="hint addr-hint">Select a country first, then search — or fill in the fields below.</p>
+      <p class="powered" hidden>Powered by Google</p>
+    </div>
+    {{ input(prefix ~ ".street_line_1", street_label, "text", true, "House number and street", "", 'maxlength="' ~ max_line ~ '"', true, "address-line1") }}
+    {{ input(prefix ~ ".street_line_2", "Apartment, suite, unit", "text", false, "", "", 'maxlength="' ~ max_line ~ '"', true, "address-line2") }}
+    {{ input(prefix ~ ".city", "City", "text", true, "", "", 'maxlength="' ~ max_city ~ '"', false, "address-level2") }}
+    {{ select(prefix ~ ".state", "State / region", None, true, "Select state / region", "", 'data-subdivisions="' ~ ref ~ '.country"') }}
+    {{ input(prefix ~ ".postal_code", "Postal code", "text", true, "", "", 'data-postal="' ~ ref ~ '.country" maxlength="20"', false, "postal-code") }}
+  </div>
+  {% if proof %}
+  {{ uploader(prefix ~ ".proof_of_address_file", proof_label, proof == "required",
+              "Statement of account or utility bill issued in the last 3 months, showing your name and this address.") }}
+  {% endif %}
+</div>
+{% endmacro %}

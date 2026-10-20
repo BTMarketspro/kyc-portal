@@ -1,0 +1,25 @@
+{% extends "admin/base.html" %}
+{% block title %}Customer links{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>Customer links</h1>
+  <p class="muted">Generate the verification link to send to a customer.{% if signed %} Links are signed, so the customer ID can't be altered.{% else %} Tip: set <code>LINK_SIGNING_SECRET</code> to make links tamper-proof.{% endif %}</p></div></header>
+<section class="panel narrow">
+  <form method="get" action="/admin/links" class="link-form">
+    <label>Customer type
+      <select class="in" name="customer_type">
+        <option value="individual" {% if customer_type == 'individual' %}selected{% endif %}>Individual (KYC)</option>
+        <option value="business" {% if customer_type == 'business' %}selected{% endif %}>Business (KYB)</option>
+      </select></label>
+    <label>Customer ID<input class="in" name="customer_id" value="{{ customer_id }}" required placeholder="e.g. 33333333-3333-3333-3333-333333333333"></label>
+    <button class="btn">Generate link</button>
+  </form>
+  {% if link %}
+  <div class="link-out">
+    <input class="in" readonly value="{{ link }}" id="link-out">
+    <button type="button" class="btn-ghost" data-copy="#link-out">Copy</button>
+    <a class="btn-ghost" href="{{ link }}" target="_blank" rel="noopener">Open</a>
+  </div>
+  {% endif %}
+  <p class="muted small">Format: <code>/verify?customer_type=individual|business&amp;customer_id=…</code>. Business customers must already be provisioned on Yativo's side.</p>
+</section>
+{% endblock %}

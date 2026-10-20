@@ -1,0 +1,21 @@
+{% extends "admin/base.html" %}
+{% block title %}Audit log{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>Audit log</h1><p class="muted">Every sign-in, view, download and change made in this console.</p></div></header>
+<div class="table-card">
+  <table class="table">
+    <thead><tr><th>When</th><th>Who</th><th>Action</th><th>Target</th><th>Detail</th><th>IP</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr><td class="muted">{{ r.created_at|dt }}</td><td>{{ r.actor }}</td><td>{{ r.action|replace('_', ' ') }}</td>
+        <td>{% if r.target %}<a href="/admin/submissions/{{ r.target }}">#{{ r.target }}</a>{% endif %}</td>
+        <td class="muted">{{ r.detail or '' }}</td><td class="muted">{{ r.ip or '' }}</td></tr>
+    {% else %}<tr><td colspan="6" class="empty">No activity yet.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+<nav class="pager">
+  {% if page > 1 %}<a class="btn-ghost sm" href="/admin/audit?page={{ page - 1 }}">← Newer</a>{% endif %}
+  {% if rows|length == 50 %}<a class="btn-ghost sm" href="/admin/audit?page={{ page + 1 }}">Older →</a>{% endif %}
+</nav>
+{% endblock %}

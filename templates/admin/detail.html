@@ -1,0 +1,115 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ summary.name }}{% endblock %}
+{% macro val(v) %}{% if v is mapping and v.file %}{% set fm = files.get(v.file) %}<a class="file-link" href="/admin/files/{{ v.file }}" target="_blank" rel="noopener"><svg class="ico sm"><use href="#i-doc"/></svg> {{ fm.name if fm else 'File' }}</a>{% else %}{{ v }}{% endif %}{% endmacro %}
+{% block content %}
+{% set flash = request.query_params.get('flash') %}
+{% if flash %}
+<div class="alert {% if flash in ['submitted', 'reopened'] %}ok{% elif flash in ['delivery_failed', 'blocked', 'duplicate', 'confirm_mismatch'] %}err{% else %}info{% endif %}">
+  {% if flash == 'reopened' %}Reopened — the customer can now edit and resubmit using their original link.
+  {% elif flash == 'confirm_mismatch' %}Deletion cancelled: the customer ID you typed didn't match.
+  {% else %}Resent to Yativo — outcome: <strong>{{ status_labels.get(flash, flash) }}</strong>.{% endif %}
+</div>
+{% endif %}
+
+<header class="page-head">
+  <div class="head-id">
+    <a href="/admin" class="back"><svg class="ico sm"><use href="#i-arrow-left"/></svg> Submissions</a>
+    <h1>{{ summary.name }}</h1>
+    <p class="muted"><span class="tag">{{ sub.flow|capitalize }}</span> · Customer <code>{{ sub.customer_id }}</code> · Submission #{{ sub.id }}</p>
+  </div>
+  <div class="head-actions">
+    <form method="post" action="/admin/submissions/{{ sub.id }}/resend" data-confirm="Send this submission to Yativo again?">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn">Resend to Yativo</button></form>
+    {% if sub.locked %}
+    <form method="post" action="/admin/submissions/{{ sub.id }}/reopen" data-confirm="Allow the customer to edit and resubmit?">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn-ghost">Reopen for customer</button></form>
+    {% endif %}
+  </div>
+</header>
+
+<div class="detail">
+  <div class="col-main">
+    {% set img_files = files.values()|list %}
+    {% if img_files %}
+    <section class="panel">
+      <h2>Documents <span class="muted">({{ img_files|length }})</span></h2>
+      <div class="gallery">
+        {% for fm in img_files %}
+        <a class="doc" href="/admin/files/{{ fm.id }}" target="_blank" rel="noopener">
+          <img loading="lazy" src="/admin/files/{{ fm.id }}?thumb=1" alt="{{ fm.name }}">
+          <span class="doc-meta"><strong>{{ fm.name }}</strong><small>{{ fm.ext|upper }} · {{ fm.size|filesize }}{% if fm.original_size != fm.size %} (from {{ fm.original_size|filesize }}){% endif %}</small></span>
+        </a>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% for sec in sections %}
+    <section class="panel {% if sec.sub %}sub{% endif %}">
+      <h2>{{ sec.title }}</h2>
+      <dl class="kv">
+        {% for r in sec.rows %}<dt>{{ r.label }}</dt><dd>{{ val(r.value) }}</dd>{% endfor %}
+      </dl>
+    </section>
+    {% endfor %}
+
+    <section class="panel">
+      <h2>Raw data</h2>
+      <details><summary>Stored form data (decrypted)</summary><pre>{{ raw_payload }}</pre></details>
+      {% if raw_outbound %}<details><summary>Last payload sent to Yativo</summary><pre>{{ raw_outbound }}</pre></details>{% endif %}
+      {% if raw_response %}<details><summary>Last Yativo response</summary><pre>{{ raw_response }}</pre></details>{% endif %}
+    </section>
+  </div>
+
+  <aside class="col-side">
+    <section class="panel">
+      <h2>Status</h2>
+      <p><span class="badge big s-{{ sub.status }}">{{ status_labels.get(sub.status, sub.status) }}</span></p>
+      <dl class="kv tight">
+        <dt>Yativo HTTP</dt><dd>{{ sub.yativo_status_code or '—' }}</dd>
+        <dt>Attempts</dt><dd>{{ sub.attempts }}</dd>
+        <dt>Created</dt><dd>{{ sub.created_at|dt }}</dd>
+        <dt>Submitted</dt><dd>{{ sub.submitted_at|dt }}</dd>
+        <dt>Delivered</dt><dd>{{ sub.delivered_at|dt }}</dd>
+        <dt>Customer can edit</dt><dd>{{ 'No' if sub.locked else 'Yes' }}</dd>
+        <dt>IP address</dt><dd>{{ sub.client_ip or '—' }}</dd>
+      </dl>
+      {% if body and body.message %}<p class="note">“{{ body.message }}”</p>{% endif %}
+    </section>
+
+    {% if body and body.warnings %}
+    <section class="panel warn">
+      <h2>Yativo warnings</h2>
+      <ul class="issues">{% for k, msgs in body.warnings.items() %}<li><code>{{ k }}</code>{% for m in (msgs if msgs is iterable and msgs is not string else [msgs]) %}<span>{{ m }}</span>{% endfor %}</li>{% endfor %}</ul>
+    </section>
+    {% endif %}
+    {% if body and body.validation_errors %}
+    <section class="panel err">
+      <h2>Yativo validation errors</h2>
+      <ul class="issues">{% for k, msgs in body.validation_errors.items() %}<li><code>{{ k }}</code>{% for m in (msgs if msgs is iterable and msgs is not string else [msgs]) %}<span>{{ m }}</span>{% endfor %}</li>{% endfor %}</ul>
+    </section>
+    {% endif %}
+    {% if body and body.data and body.data.duplicate_of %}
+    <section class="panel err"><h2>Duplicate of</h2>{% for d in body.data.duplicate_of %}<code>{{ d }}</code> {% endfor %}</section>
+    {% endif %}
+
+    <section class="panel">
+      <h2>Activity</h2>
+      <ul class="timeline">
+        {% for h in history %}<li><strong>{{ h.action|replace('_', ' ')|capitalize }}</strong><small>{{ h.actor }} · {{ h.created_at|dt }}</small>{% if h.detail %}<small>{{ h.detail }}</small>{% endif %}</li>
+        {% else %}<li class="muted">No admin activity yet.</li>{% endfor %}
+      </ul>
+    </section>
+
+    <section class="panel danger-zone">
+      <h2>Delete data</h2>
+      <p class="muted">Permanently deletes this submission and every file uploaded for this customer. Type the customer ID to confirm.</p>
+      <form method="post" action="/admin/submissions/{{ sub.id }}/delete" data-confirm="This cannot be undone. Delete permanently?">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input class="in" name="confirm" placeholder="{{ sub.customer_id }}" autocomplete="off">
+        <button class="btn danger wide">Delete permanently</button>
+      </form>
+    </section>
+  </aside>
+</div>
+{% endblock %}

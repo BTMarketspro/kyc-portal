@@ -1,0 +1,61 @@
+{% extends "admin/base.html" %}
+{% block title %}Submissions{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div><h1>Submissions</h1><p class="muted">Every application is stored encrypted and decrypted only when you open it.</p></div>
+</header>
+
+{% set tiles = [("submitted", "Submitted"), ("needs_correction", "Needs correction"), ("delivery_failed", "Delivery failed"), ("draft", "In progress")] %}
+<div class="tiles">
+  {% for key, name in tiles %}
+  <a class="tile {% if f_status == key %}on{% endif %}" href="/admin?{{ qs(status=key, page='') }}">
+    <span class="badge s-{{ key }}">{{ name }}</span><strong>{{ counts.get(key, 0) }}</strong>
+  </a>
+  {% endfor %}
+</div>
+
+<form class="filters" method="get" action="/admin">
+  <div class="search"><svg class="ico"><use href="#i-search"/></svg>
+    <input class="in" name="q" value="{{ q }}" placeholder="Exact customer ID, email or full name"></div>
+  <select class="in" name="flow">
+    <option value="">All types</option>
+    <option value="individual" {% if f_flow == 'individual' %}selected{% endif %}>Individual</option>
+    <option value="business" {% if f_flow == 'business' %}selected{% endif %}>Business</option>
+  </select>
+  <select class="in" name="status">
+    <option value="">All statuses</option>
+    {% for k, v in status_labels.items() %}<option value="{{ k }}" {% if f_status == k %}selected{% endif %}>{{ v }}</option>{% endfor %}
+  </select>
+  <button class="btn">Filter</button>
+  {% if q or f_flow or f_status %}<a class="btn-ghost" href="/admin">Clear</a>{% endif %}
+</form>
+
+<div class="table-card">
+  <table class="table">
+    <thead><tr><th>Applicant</th><th>Customer ID</th><th>Type</th><th>Status</th><th>Updated</th><th></th></tr></thead>
+    <tbody>
+    {% for it in items %}
+      {% set s = it.sub %}
+      <tr data-href="/admin/submissions/{{ s.id }}">
+        <td><div class="who-cell"><span class="av">{{ (it.summary.name or '?')[:1]|upper }}</span>
+          <div><strong>{{ it.summary.name }}</strong><small>{{ it.summary.email }}{% if it.summary.country %} · {{ it.summary.country }}{% endif %}</small></div></div></td>
+        <td><code>{{ s.customer_id }}</code></td>
+        <td><span class="tag">{{ s.flow|capitalize }}</span></td>
+        <td><span class="badge s-{{ s.status }}">{{ status_labels.get(s.status, s.status) }}</span>{% if s.warnings_count %} <span class="warn-dot" title="{{ s.warnings_count }} warning(s)">{{ s.warnings_count }}</span>{% endif %}</td>
+        <td class="muted">{{ s.updated_at|dt }}</td>
+        <td><a class="btn-ghost sm" href="/admin/submissions/{{ s.id }}">Review</a></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="empty">No submissions match these filters.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% if pages > 1 %}
+<nav class="pager">
+  {% if page > 1 %}<a class="btn-ghost sm" href="/admin?{{ qs(page=page-1) }}">← Previous</a>{% endif %}
+  <span class="muted">Page {{ page }} of {{ pages }} · {{ total }} total</span>
+  {% if page < pages %}<a class="btn-ghost sm" href="/admin?{{ qs(page=page+1) }}">Next →</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

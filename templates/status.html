@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block body_class %}page-status{% endblock %}
+{% block content %}
+<main class="status-wrap">
+  <div class="card status-card">
+    <div class="status-icon {{ kind }}">
+      <svg class="ico xl"><use href="#{% if kind == 'success' %}i-check{% elif kind == 'error' %}i-alert{% else %}i-clock{% endif %}"/></svg>
+    </div>
+    <h1>{{ title }}</h1>
+    <p class="lead">{{ message }}</p>
+    {% if kind == "success" and branding.return_url %}<a class="btn" href="{{ branding.return_url }}">Continue</a>{% endif %}
+  </div>
+</main>
+{% endblock %}

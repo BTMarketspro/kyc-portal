@@ -1,0 +1,103 @@
+{% extends "admin/base.html" %}
+{% block title %}Branding & settings{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div><h1>Branding &amp; settings</h1><p class="muted">Changes apply instantly to every customer verification page.</p></div>
+</header>
+{% if saved == 1 %}<div class="alert ok">Settings saved.</div>{% elif saved == 2 %}<div class="alert ok">Lookup data refreshed from Yativo.</div>{% endif %}
+
+<div class="settings">
+  <form method="post" action="/admin/settings" id="settings-form" class="col-main">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+
+    <section class="panel">
+      <h2>Colour scheme</h2>
+      <p class="muted">Start from a preset, then fine-tune any colour.</p>
+      <div class="presets">
+        {% for name, p in presets.items() %}
+        <button type="button" class="preset" data-preset='{{ p|tojson }}'>
+          <span class="sw" style="background: {{ p.background }}"><i style="background: {{ p.primary }}"></i><i style="background: {{ p.accent }}"></i><i style="background: {{ p.surface }}; border: 1px solid {{ p.border }}"></i></span>
+          {{ name }}
+        </button>
+        {% endfor %}
+      </div>
+      <div class="colors">
+        {% for key, label in color_fields.items() %}
+        <label class="color">
+          <input type="color" name="color_{{ key }}" value="{{ theme[key] }}" data-color="{{ key }}">
+          <span><strong>{{ label }}</strong><code data-hex="{{ key }}">{{ theme[key] }}</code></span>
+        </label>
+        {% endfor %}
+      </div>
+      <div class="row2">
+        <label>Corner radius <span class="muted" id="radius-val">{{ branding.radius }}px</span>
+          <input type="range" name="radius" min="0" max="24" value="{{ branding.radius }}" data-radius></label>
+        <label>Font
+          <select class="in" name="font" data-font>{% for f in fonts %}<option {% if f == branding.font %}selected{% endif %}>{{ f }}</option>{% endfor %}</select></label>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Brand &amp; copy</h2>
+      <div class="row2">
+        <label>Brand name<input class="in" name="brand_name" value="{{ branding.brand_name }}" maxlength="80"></label>
+        <label>Logo URL (https)<input class="in" name="logo_url" value="{{ branding.logo_url }}" placeholder="https://…/logo.svg"></label>
+        <label>Support email<input class="in" name="support_email" value="{{ branding.support_email }}" type="email"></label>
+        <label>Return URL after success (https)<input class="in" name="return_url" value="{{ branding.return_url }}" placeholder="https://app.example.com/dashboard"></label>
+      </div>
+      <label>Welcome title<input class="in" name="welcome_title" value="{{ branding.welcome_title }}"></label>
+      <label>Welcome text<textarea class="in" name="welcome_text" rows="2">{{ branding.welcome_text }}</textarea></label>
+      <label>Success title<input class="in" name="success_title" value="{{ branding.success_title }}"></label>
+      <label>Success text<textarea class="in" name="success_text" rows="3">{{ branding.success_text }}</textarea></label>
+    </section>
+
+    <section class="panel">
+      <h2>Accounts offered to customers</h2>
+      <p class="muted">Controls the virtual-account flags sent to Yativo. EUR (DE) is closed to new customers from 2 Sep 2026.</p>
+      <table class="table compact">
+        <thead><tr><th>Account</th><th>Show to customers</th><th>Selected by default</th></tr></thead>
+        <tbody>
+        {% for key, acc in accounts.items() %}
+        <tr><td><strong>{{ account_labels[key][0] }}</strong><br><small class="muted">{{ account_labels[key][1] }}</small></td>
+          <td><input type="checkbox" name="acc_{{ key }}_enabled" {% if acc.enabled %}checked{% endif %}></td>
+          <td><input type="checkbox" name="acc_{{ key }}_default" {% if acc.default %}checked{% endif %}></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <div class="sticky-save"><button class="btn">Save changes</button></div>
+  </form>
+
+  <aside class="col-side">
+    <section class="panel preview-panel">
+      <h2>Live preview</h2>
+      <div class="pv" id="pv">
+        <div class="pv-top"><span class="pv-logo"></span><span class="pv-brand">{{ branding.brand_name }}</span></div>
+        <div class="pv-card">
+          <div class="pv-steps"><i class="done"></i><i class="active"></i><i></i></div>
+          <div class="pv-title">Identity document</div>
+          <div class="pv-sub">Upload a valid photo ID</div>
+          <div class="pv-input">Passport</div>
+          <div class="pv-drop">Drag &amp; drop or choose a file</div>
+          <div class="pv-err">Example error message</div>
+          <div class="pv-btn">Continue</div>
+        </div>
+      </div>
+      <a class="btn-ghost wide" href="/verify?preview=1&customer_type=individual" target="_blank" rel="noopener">Open full preview (individual)</a>
+      <a class="btn-ghost wide" href="/verify?preview=1&customer_type=business" target="_blank" rel="noopener">Open full preview (business)</a>
+    </section>
+    <section class="panel">
+      <h2>Integration</h2>
+      <dl class="kv tight">
+        <dt>Yativo API</dt><dd><code>{{ yativo_base }}</code></dd>
+        <dt>Address search</dt><dd>{{ address_provider }}</dd>
+      </dl>
+      <form method="post" action="/admin/settings/refresh-lookups">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="btn-ghost wide">Refresh lookup data now</button>
+      </form>
+    </section>
+  </aside>
+</div>
+{% endblock %}

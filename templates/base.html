@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en"{% if dark %} data-dark{% endif %}>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% block title %}{{ branding.brand_name }}{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family={{ branding.font|replace(' ', '+') }}:wght@400;500;600;700&display=swap">
+  <style>{{ css_vars|safe }}</style>
+  <link rel="stylesheet" href="/static/css/kyc.css?v=1">
+  {% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+{% include "_icons.html" %}
+<header class="topbar">
+  <div class="brand">
+    {% if branding.logo_url %}<img src="{{ branding.logo_url }}" alt="{{ branding.brand_name }}" class="logo">
+    {% else %}<span class="logo-mark" aria-hidden="true"><svg class="ico"><use href="#i-shield"/></svg></span>
+    <span class="brand-name">{{ branding.brand_name }}</span>{% endif %}
+  </div>
+  <div class="secure"><svg class="ico sm"><use href="#i-lock"/></svg> Secure &amp; encrypted</div>
+</header>
+{% block content %}{% endblock %}
+<footer class="foot">
+  {% if branding.support_email %}Need help? <a href="mailto:{{ branding.support_email }}">{{ branding.support_email }}</a> · {% endif %}
+  Your data is encrypted in transit and at rest.
+</footer>
+{% block scripts %}{% endblock %}
+</body>
+</html>

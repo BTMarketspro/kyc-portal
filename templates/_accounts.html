@@ -1,0 +1,20 @@
+{% set enabled = boot.accounts.items()|selectattr("1.enabled")|list %}
+{% if enabled %}
+<h3 class="sub-title">Accounts</h3>
+<div class="accounts" data-error-for="eurde_virtual_account">
+  {% for key, acc in enabled %}
+  <label class="acc" data-field="{{ key }}_virtual_account">
+    <input type="checkbox" name="{{ key }}_virtual_account" data-type="bool" data-acc="{{ key }}" {% if acc.default %}data-default="1"{% endif %}>
+    <span class="acc-body">
+      <span class="acc-flag">{{ key[:3]|upper }}</span>
+      <span><strong>{{ acc.label }}</strong><small>{{ acc.hint }}</small></span>
+    </span>
+    <span class="switch" aria-hidden="true"></span>
+  </label>
+  {% endfor %}
+</div>
+<p class="field-error" data-error-for="usd_virtual_account"></p>
+<p class="field-error" data-error-for="eur_virtual_account"></p>
+<p class="field-error" data-error-for="gbp_virtual_account"></p>
+<p class="field-error" data-error-for="eurde_virtual_account"></p>
+{% endif %}

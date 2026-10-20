@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% block title %}Admin{% endblock %} · {{ branding.brand_name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <style>:root{--c-primary: {{ theme.primary }}; --c-primary-contrast: {{ theme.primary_contrast }};}</style>
+  <link rel="stylesheet" href="/static/css/admin.css?v=1">
+</head>
+<body>
+{% include "_icons.html" %}
+{% if admin %}
+<div class="layout">
+  <aside class="side">
+    <div class="side-brand">
+      <span class="mark"><svg class="ico"><use href="#i-shield"/></svg></span>
+      <div><strong>{{ branding.brand_name }}</strong><small>Compliance console</small></div>
+    </div>
+    {% set path = request.url.path %}
+    <nav>
+      <a href="/admin" class="{% if path == '/admin' or path.startswith('/admin/submissions') %}on{% endif %}"><svg class="ico"><use href="#i-users"/></svg> Submissions</a>
+      <a href="/admin/links" class="{% if path.startswith('/admin/links') %}on{% endif %}"><svg class="ico"><use href="#i-globe"/></svg> Customer links</a>
+      <a href="/admin/settings" class="{% if path.startswith('/admin/settings') %}on{% endif %}"><svg class="ico"><use href="#i-edit"/></svg> Branding &amp; settings</a>
+      <a href="/admin/audit" class="{% if path.startswith('/admin/audit') %}on{% endif %}"><svg class="ico"><use href="#i-clock"/></svg> Audit log</a>
+    </nav>
+    <div class="side-foot">
+      <span class="who">{{ admin }}</span>
+      <form method="post" action="/admin/logout"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="link">Sign out</button></form>
+    </div>
+  </aside>
+  <main class="main">{% block content %}{% endblock %}</main>
+</div>
+{% else %}
+{% block bare %}{% endblock %}
+{% endif %}
+<script src="/static/js/admin.js?v=1" defer></script>
+</body>
+</html>

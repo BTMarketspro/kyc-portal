@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% import "_fields.html" as f %}
+{% block title %}{{ branding.brand_name }} — {{ "Business verification" if flow == "business" else "Identity verification" }}{% endblock %}
+{% block body_class %}page-kyc{% endblock %}
+{% block content %}
+<script type="application/json" id="boot">{{ boot|jsonscript }}</script>
+<main class="shell">
+  <aside class="rail" aria-label="Progress">
+    <div class="rail-head">
+      <p class="eyebrow">{{ "Business verification" if flow == "business" else "Identity verification" }}</p>
+      <h2>{% if flow == "business" and branding.welcome_title == "Let's verify your identity" %}Let's verify your business{% else %}{{ branding.welcome_title }}{% endif %}</h2>
+      <p class="muted">{{ branding.welcome_text }}</p>
+    </div>
+    <ol class="steps" id="steps"></ol>
+    <div class="rail-foot"><svg class="ico sm"><use href="#i-lock"/></svg> 256-bit encryption</div>
+  </aside>
+
+  <section class="panel card">
+    <div class="mobile-progress"><span id="m-step">Step 1</span><div class="mbar"><span id="m-bar"></span></div></div>
+    {% if boot.preview %}<div class="banner info">Preview mode — submissions are disabled.</div>{% endif %}
+    <div class="banner error" id="global-error" hidden></div>
+    {% if boot.prefill %}
+    <div class="prefill" id="prefill">
+      <div class="prefill-icon" aria-hidden="true"><svg class="ico"><use href="#i-user"/></svg></div>
+      <div class="prefill-body">
+        <strong>Welcome back — load your saved details?</strong>
+        <p class="pf-msg">You've filled this form before. Verify your email <b>{{ boot.prefill.email }}</b> and we'll fill it in for you — you'll only need to check and update anything that changed.</p>
+        <div class="pf-actions" data-pf="start">
+          <button type="button" class="btn sm" data-pf-send>Send verification code</button>
+          <button type="button" class="btn-ghost sm" data-pf-dismiss>Start fresh</button>
+        </div>
+        <div class="pf-actions" data-pf="code" hidden>
+          <input class="input otp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6-digit code" aria-label="Verification code">
+          <button type="button" class="btn sm" data-pf-verify>Verify &amp; load</button>
+          <button type="button" class="btn-ghost sm" data-pf-send>Resend</button>
+        </div>
+        <p class="field-error pf-error" role="alert"></p>
+      </div>
+    </div>
+    {% endif %}
+
+    <form id="kyc" novalidate autocomplete="off">
+      {% if flow == "business" %}{% include "_business.html" %}{% else %}{% include "_individual.html" %}{% endif %}
+
+      <section class="step" data-step="review" data-title="Review & submit" data-sub="Check your details" data-icon="i-eye">
+        <header class="step-head"><h1>Review &amp; submit</h1><p>Please check everything carefully. You can edit any section before submitting.</p></header>
+        <div id="review"></div>
+        <label class="check consent" data-field="consent">
+          <input type="checkbox" name="consent" data-type="bool">
+          <span class="box" aria-hidden="true"></span>
+          <span>I confirm that the information provided is true, accurate and complete, that the documents are genuine,
+          and I consent to it being processed for identity verification and regulatory compliance.</span>
+        </label>
+        <p class="field-error" data-error-for="consent" role="alert"></p>
+      </section>
+
+      <div class="nav">
+        <button type="button" class="btn-ghost" id="back"><svg class="ico sm"><use href="#i-arrow-left"/></svg> Back</button>
+        <button type="button" class="btn" id="next"><span>Continue</span><span class="spinner" aria-hidden="true"></span></button>
+      </div>
+    </form>
+
+    <div id="done" class="done-panel" hidden>
+      <div class="status-icon success"><svg class="ico xl"><use href="#i-check"/></svg></div>
+      <h1 id="done-title"></h1>
+      <p class="lead" id="done-text"></p>
+      <a class="btn" id="done-return" hidden>Continue</a>
+    </div>
+  </section>
+</main>
+{% endblock %}
+{% block scripts %}<script src="/static/js/kyc.js?v=1" defer></script>{% endblock %}

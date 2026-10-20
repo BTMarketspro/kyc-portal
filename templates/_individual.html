@@ -1,0 +1,105 @@
+{% import "_fields.html" as f %}
+{% set e = boot.enums %}
+
+<section class="step" data-step="personal" data-title="Personal details" data-sub="Name, date of birth, contact" data-icon="i-user">
+  <header class="step-head"><h1>Personal details</h1><p>Enter your details exactly as they appear on your identity document.</p></header>
+  <div class="grid">
+    {{ f.input("first_name", "First name", required=true, attrs='maxlength="1024" data-name', autocomplete="given-name") }}
+    {{ f.input("middle_name", "Middle name", attrs='maxlength="1024" data-name', autocomplete="additional-name") }}
+    {{ f.input("last_name", "Last name", required=true, attrs='maxlength="1024" data-name', autocomplete="family-name") }}
+    {{ f.date("birth_date", "Date of birth", true, "You must be at least 18 years old.", "birth") }}
+    {{ f.select("gender", "Gender", e.genders.items(), true) }}
+    {{ f.country("nationality", "Nationality", true) }}
+    {{ f.input("email", "Email address", "email", true, "name@example.com", "", 'data-email maxlength="254"', autocomplete="email") }}
+    {{ f.phone("calling_code", "phone", "Mobile phone", true, "", "nationality") }}
+    {{ f.input("taxId", "Tax identification number", required=true, hint="e.g. SSN, TIN, NIN, CPF, RFC or your country's personal tax number.", attrs='maxlength="100"') }}
+  </div>
+  <div class="cond" data-show-if="nationality=NG">
+    <div class="callout"><svg class="ico"><use href="#i-shield"/></svg><span>Nigerian nationals must provide their BVN and NIN (11 digits each). Your name and date of birth must match your BVN record.</span></div>
+    <div class="grid">
+      {{ f.input("bvn", "BVN (Bank Verification Number)", required=true, attrs='inputmode="numeric" maxlength="11" data-digits="11"') }}
+      {{ f.input("nin", "NIN (National Identification Number)", required=true, attrs='inputmode="numeric" maxlength="11" data-digits="11"') }}
+    </div>
+  </div>
+</section>
+
+<section class="step" data-step="address" data-title="Residential address" data-sub="Where you live" data-icon="i-home">
+  <header class="step-head"><h1>Residential address</h1><p>Your current home address. Search to auto-fill, then check each field.</p></header>
+  {{ f.address("residential_address", "", "required", street_label="Address on bank statement") }}
+  <div class="cond" data-show-if="residential_address.country=NG && nationality!=NG">
+    <div class="callout"><svg class="ico"><use href="#i-shield"/></svg><span>Everyone living in Nigeria must provide their BVN and NIN (11 digits each).</span></div>
+    <div class="grid">
+      <div class="field" data-field="bvn">
+        <label class="label" for="f-bvn-res">BVN (Bank Verification Number) <span class="req" aria-hidden="true">*</span></label>
+        <input class="input" id="f-bvn-res" name="bvn" type="text" inputmode="numeric" maxlength="11" data-digits="11" autocomplete="off" required>
+        <p class="field-error" role="alert"></p>
+      </div>
+      <div class="field" data-field="nin">
+        <label class="label" for="f-nin-res">NIN (National Identification Number) <span class="req" aria-hidden="true">*</span></label>
+        <input class="input" id="f-nin-res" name="nin" type="text" inputmode="numeric" maxlength="11" data-digits="11" autocomplete="off" required>
+        <p class="field-error" role="alert"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="step" data-step="identity" data-title="Identity document" data-sub="Passport, ID card or licence" data-icon="i-idcard">
+  <header class="step-head"><h1>Identity document</h1><p>Upload a valid, government-issued photo ID. All four corners should be visible, with no glare.</p></header>
+  <div class="grid">
+    {{ f.country("identifying_information.0.issuing_country", "Issuing country", true, "", 'data-follow="nationality"') }}
+    {{ f.select("identifying_information.0.type", "Document type", None, true, "Select document", "", 'data-idtypes="identifying_information.0.issuing_country"') }}
+    {{ f.input("identifying_information.0.number", "Document number", required=true, attrs='maxlength="100"') }}
+    {{ f.date("identifying_information.0.date_issued", "Issue date", true, "", "past") }}
+    {{ f.date("identifying_information.0.expiration_date", "Expiry date", true, "Expired documents can't be accepted.", "future") }}
+  </div>
+  <div class="upload-pair">
+    {{ f.uploader("identifying_information.0.image_front_file", "Front side", true, "Photo or scan of the front of your document.", "id") }}
+    <div class="cond" data-show-if="identifying_information.0.type!=passport">
+      {{ f.uploader("identifying_information.0.image_back_file", "Back side", true, "Photo or scan of the back of your document.", "id") }}
+    </div>
+  </div>
+  <ul class="tips">
+    <li><svg class="ico sm"><use href="#i-check"/></svg> Original document, not a photocopy</li>
+    <li><svg class="ico sm"><use href="#i-check"/></svg> Clear, in focus and well lit</li>
+    <li><svg class="ico sm"><use href="#i-check"/></svg> All text readable, nothing covered</li>
+  </ul>
+</section>
+
+<section class="step" data-step="selfie" data-title="Selfie" data-sub="A photo of your face" data-icon="i-face">
+  <header class="step-head"><h1>Take a selfie</h1><p>We compare your selfie with the photo on your document.</p></header>
+  {{ f.uploader("selfie_image", "Selfie", true, "Face the camera in good light. Remove glasses, hats and masks.", "selfie") }}
+  <ul class="tips">
+    <li><svg class="ico sm"><use href="#i-check"/></svg> Your whole face is visible and centred</li>
+    <li><svg class="ico sm"><use href="#i-check"/></svg> Neutral expression, eyes open</li>
+    <li><svg class="ico sm"><use href="#i-check"/></svg> No filters or edits</li>
+  </ul>
+</section>
+
+<section class="step" data-step="profile" data-title="Financial profile" data-sub="Occupation and account use" data-icon="i-briefcase">
+  <header class="step-head"><h1>Financial profile</h1><p>Regulations require us to understand how you'll use your account.</p></header>
+  <div class="grid">
+    {{ f.select("employment_status", "Employment status", e.employment_status.items(), true) }}
+    {{ f.input("current_employer", "Current employer", attrs='maxlength="512"') }}
+    {{ f.typeahead("most_recent_occupation_code", "Occupation", "occupations", true, "Search occupations, e.g. software developer") }}
+    {{ f.input("annual_salary", "Annual income (USD)", hint="Whole number, no symbols or separators.", attrs='inputmode="numeric" maxlength="20" data-digits-only') }}
+    {{ f.select("expected_monthly_payments_usd", "Expected monthly volume (USD)", e.expected_monthly.items(), true) }}
+    {{ f.select("source_of_funds", "Source of funds", e.source_of_funds.items(), true) }}
+    {{ f.select("account_purpose", "Account purpose", e.account_purposes.items(), true) }}
+    <div class="cond wide" data-show-if="account_purpose=Other">
+      {{ f.input("account_purpose_other", "Describe the account purpose", required=true, wide=true, attrs='maxlength="1000"') }}
+    </div>
+    <div class="cond wide" data-show-if="residential_address.country=US">
+      {{ f.select("immigration_status", "U.S. immigration status", e.immigration_status|pairs, false, "Select (U.S. citizens can skip)") }}
+    </div>
+  </div>
+  {{ f.yesno("acting_as_intermediary", "Are you acting on behalf of someone else (as an intermediary)?", false) }}
+</section>
+
+<section class="step" data-step="extras" data-title="Supporting documents" data-sub="Statement of account" data-icon="i-doc">
+  <header class="step-head"><h1>Supporting documents</h1><p>Upload your most recent bank statement (last 3 months). We'll use it as your proof of address, proof of funds and proof of bank account ownership.</p></header>
+  <p class="field-error" data-error-for="uploaded_documents" role="alert"></p>
+  <input type="hidden" name="uploaded_documents.0.type" value="proof_of_bank_account_ownership">
+  {{ f.uploader("uploaded_documents.0.file", "Statement of account", true,
+     "Your most recent bank statement (last 3 months) showing your name, address, account number and transactions.") }}
+  {% include "_accounts.html" %}
+</section>
