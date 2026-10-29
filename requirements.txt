@@ -14,3 +14,4 @@ phonenumbers>=8.13
 python-dotenv>=1.0
 # dev
 pytest>=8
+psycopg[binary]>=3.1
